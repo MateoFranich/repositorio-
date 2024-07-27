@@ -1,0 +1,4 @@
+telebot
+pytrends
+requests
+beautifulsoup4
