@@ -5,12 +5,16 @@ import logging
 import certifi
 import os
 import ssl
+import urllib3
 
 def update_certificates():
     cafile = certifi.where()
     os.environ['SSL_CERT_FILE'] = cafile
     os.environ['SSL_CERT_DIR'] = os.path.dirname(cafile)
     ssl._create_default_https_context = ssl.create_default_context
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 update_certificates()
 
