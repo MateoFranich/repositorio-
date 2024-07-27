@@ -2,6 +2,17 @@ import telebot
 from pytrends.request import TrendReq
 import snscrape.modules.twitter as sntwitter
 import logging
+import certifi
+import os
+import ssl
+
+def update_certificates():
+    cafile = certifi.where()
+    os.environ['SSL_CERT_FILE'] = cafile
+    os.environ['SSL_CERT_DIR'] = os.path.dirname(cafile)
+    ssl._create_default_https_context = ssl.create_default_context
+
+update_certificates()
 
 API_TOKEN = '7433787803:AAFuedeOGqjVSN5bc1TSYTrBLlc4pO2fe0E'
 bot = telebot.TeleBot(API_TOKEN)
@@ -22,7 +33,7 @@ def get_twitter_trends():
     try:
         trends_list = []
         for i, tweet in enumerate(sntwitter.TwitterSearchScraper('trending').get_items()):
-            if i >= 10:  # Limitar a los primeros 10 resultados
+            if i >= 10:  
                 break
             trends_list.append(tweet.content)
         return trends_list
