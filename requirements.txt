@@ -2,3 +2,4 @@ telebot
 pytrends
 requests
 beautifulsoup4
+snscrape
