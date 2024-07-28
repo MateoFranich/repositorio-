@@ -8,22 +8,23 @@ from collections import Counter
 import certifi
 import os
 import ssl
+from googletrans import Translator
 
 def update_certificates():
     cafile = certifi.where()
-
     os.environ['SSL_CERT_FILE'] = cafile
     os.environ['SSL_CERT_DIR'] = os.path.dirname(cafile)
-
     ssl._create_default_https_context = ssl.create_default_context
 
 update_certificates()
 
 API_TOKEN = '7433787803:AAFuedeOGqjVSN5bc1TSYTrBLlc4pO2fe0E'
-NEWS_API_KEY = 'b4272bf7904f44af8abd6ae638dfba25'  
+NEWS_API_KEY = 'b4272bf7904f44af8abd6ae638dfba25'
 bot = telebot.TeleBot(API_TOKEN)
 
 logging.basicConfig(level=logging.INFO)
+
+translator = Translator()
 
 def get_google_trends(region='world'):
     try:
@@ -63,12 +64,12 @@ def get_recent_tweets():
     try:
         url = 'https://api.twitter.com/2/tweets/search/recent'
         params = {
-            'query': '#',  
+            'query': '#',
             'max_results': 100,
             'tweet.fields': 'entities'
         }
         headers = {
-            'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAAM2FuwEAAAAAYUQHNqeJzyr6kNHlB%2BJXUGe35Ao%3DUQWHok1vNWgNJLIInYLakkTjzz6T48qV4b7E1Rggn0YDSQzWPK' 
+            'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAAM2FuwEAAAAAYUQHNqeJzyr6kNHlB%2BJXUGe35Ao%3DUQWHok1vNWgNJLIInYLakkTjzz6T48qV4b7E1Rggn0YDSQzWPK'
         }
         response = requests.get(url, headers=headers, params=params)
         tweets = response.json()
@@ -86,17 +87,21 @@ def get_news_summaries(trends):
     summaries = []
     for trend in trends:
         try:
+            translated_trend = translator.translate(trend, dest='es').text
             url = f'https://newsapi.org/v2/everything?q={trend}&apiKey={NEWS_API_KEY}'
             response = requests.get(url)
             articles = response.json().get('articles', [])
             if articles:
-                summary = articles[0].get('title', '') + ' - ' + articles[0].get('description', '')
-                summaries.append(f"{trend}: {summary}")
+                title = articles[0].get('title', '')
+                description = articles[0].get('description', '')
+                translated_title = translator.translate(title, dest='es').text
+                translated_description = translator.translate(description, dest='es').text
+                summaries.append(f"*{translated_trend}*:\n{translated_title} - {translated_description}\n")
             else:
-                summaries.append(f"{trend}: No se encontraron noticias recientes.")
+                summaries.append(f"*{translated_trend}*:\nNo se encontraron noticias recientes.\n")
         except Exception as e:
             logging.error(f"Error al obtener noticias para {trend}: {e}")
-            summaries.append(f"{trend}: Error al obtener noticias.")
+            summaries.append(f"*{trend}*:\nError al obtener noticias.\n")
     return summaries
 
 @bot.message_handler(commands=['start', 'help'])
@@ -109,12 +114,12 @@ def send_trends(message):
     google_trends_global = get_google_trends()
     google_trends_arg = get_google_trends('argentina')
     twitter_trends_arg = get_twitter_trends('argentina')
-    twitter_trends_global = get_twitter_trends('') 
+    twitter_trends_global = get_twitter_trends('')
     
-    response = ("Tendencias de Google Globales:\n" + "\n".join(google_trends_global[:5]) +
-                "\n\nTendencias de Google en Argentina:\n" + "\n".join(google_trends_arg[:5]) +
-                "\n\nTendencias de Twitter en Argentina:\n" + "\n".join(twitter_trends_arg[:5]) +
-                "\n\nTendencias de Twitter Globales:\n" + "\n".join(twitter_trends_global[:5]))
+    response = ("Tendencias de Google Globales:\n" + "\n".join(f"*{trend}*" for trend in google_trends_global[:5]) +
+                "\n\nTendencias de Google en Argentina:\n" + "\n".join(f"*{trend}*" for trend in google_trends_arg[:5]) +
+                "\n\nTendencias de Twitter en Argentina:\n" + "\n".join(f"*{trend}*" for trend in twitter_trends_arg[:5]) +
+                "\n\nTendencias de Twitter Globales:\n" + "\n".join(f"*{trend}*" for trend in twitter_trends_global[:5]))
     bot.reply_to(message, response)
 
 @bot.message_handler(commands=['news'])
