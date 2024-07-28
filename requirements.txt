@@ -2,5 +2,7 @@ telebot
 pytrends
 requests
 beautifulsoup4
-snscrape
 certifi
+googletrans==4.0.0-rc1
+
+

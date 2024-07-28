@@ -8,7 +8,11 @@ from collections import Counter
 import certifi
 import os
 import ssl
-from googletrans import Translator
+
+try:
+    from googletrans import Translator
+except ImportError:
+    logging.error("Error al importar googletrans. Asegúrate de que esté instalado.")
 
 def update_certificates():
     cafile = certifi.where()
@@ -24,7 +28,7 @@ bot = telebot.TeleBot(API_TOKEN)
 
 logging.basicConfig(level=logging.INFO)
 
-translator = Translator()
+translator = Translator() if 'Translator' in globals() else None
 
 def get_google_trends(region='world'):
     try:
@@ -83,19 +87,30 @@ def get_recent_tweets():
         logging.error(f"Error al obtener tweets recientes: {e}")
         return []
 
+def translate_text(text, dest='es'):
+    if translator:
+        try:
+            translated = translator.translate(text, dest=dest).text
+            return translated
+        except Exception as e:
+            logging.error(f"Error al traducir texto: {e}")
+            return text
+    else:
+        return text
+
 def get_news_summaries(trends):
     summaries = []
     for trend in trends:
         try:
-            translated_trend = translator.translate(trend, dest='es').text
+            translated_trend = translate_text(trend, dest='es')
             url = f'https://newsapi.org/v2/everything?q={trend}&apiKey={NEWS_API_KEY}'
             response = requests.get(url)
             articles = response.json().get('articles', [])
             if articles:
                 title = articles[0].get('title', '')
                 description = articles[0].get('description', '')
-                translated_title = translator.translate(title, dest='es').text
-                translated_description = translator.translate(description, dest='es').text
+                translated_title = translate_text(title, dest='es')
+                translated_description = translate_text(description, dest='es')
                 summaries.append(f"*{translated_trend}*:\n{translated_title} - {translated_description}\n")
             else:
                 summaries.append(f"*{translated_trend}*:\nNo se encontraron noticias recientes.\n")
