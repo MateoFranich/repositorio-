@@ -30,6 +30,17 @@ logging.basicConfig(level=logging.INFO)
 
 translator = Translator() if 'Translator' in globals() else None
 
+def translate_text(text, dest='es'):
+    if translator:
+        try:
+            translated = translator.translate(text, dest=dest).text
+            return translated
+        except Exception as e:
+            logging.error(f"Error al traducir texto: {e}")
+            return text
+    else:
+        return text
+
 def get_google_trends(region='world'):
     try:
         pytrends = TrendReq(hl='es-AR', tz=360)
@@ -39,6 +50,9 @@ def get_google_trends(region='world'):
             trending_searches_df = pytrends.trending_searches()
         trends = trending_searches_df[0].tolist()
         return trends
+    except requests.ConnectionError as e:
+        logging.error(f"Error de conexión al obtener tendencias de Google: {e}")
+        return []
     except Exception as e:
         logging.error(f"Error al obtener tendencias de Google: {e}")
         return []
@@ -47,6 +61,7 @@ def get_twitter_trends(location='argentina'):
     try:
         url = f'https://trends24.in/{location}/'
         response = requests.get(url)
+        response.raise_for_status()  
         soup = BeautifulSoup(response.content, 'html.parser')
         trends_list = []
 
@@ -60,6 +75,9 @@ def get_twitter_trends(location='argentina'):
             trends_list.append(trend.text.strip())
 
         return trends_list[:10]
+    except requests.ConnectionError as e:
+        logging.error(f"Error de conexión al obtener tendencias de Twitter: {e}")
+        return []
     except Exception as e:
         logging.error(f"Error al obtener tendencias de Twitter de {location}: {e}")
         return []
@@ -76,6 +94,7 @@ def get_recent_tweets():
             'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAAM2FuwEAAAAAYUQHNqeJzyr6kNHlB%2BJXUGe35Ao%3DUQWHok1vNWgNJLIInYLakkTjzz6T48qV4b7E1Rggn0YDSQzWPK'
         }
         response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()  
         tweets = response.json()
         hashtags = []
         for tweet in tweets['data']:
@@ -83,20 +102,12 @@ def get_recent_tweets():
                 for hashtag in tweet['entities']['hashtags']:
                     hashtags.append(hashtag['tag'])
         return [tag for tag, count in Counter(hashtags).most_common(10)]
+    except requests.ConnectionError as e:
+        logging.error(f"Error de conexión al obtener tweets recientes: {e}")
+        return []
     except Exception as e:
         logging.error(f"Error al obtener tweets recientes: {e}")
         return []
-
-def translate_text(text, dest='es'):
-    if translator:
-        try:
-            translated = translator.translate(text, dest=dest).text
-            return translated
-        except Exception as e:
-            logging.error(f"Error al traducir texto: {e}")
-            return text
-    else:
-        return text
 
 def get_news_summaries(trends):
     summaries = []
@@ -105,6 +116,7 @@ def get_news_summaries(trends):
             translated_trend = translate_text(trend, dest='es')
             url = f'https://newsapi.org/v2/everything?q={trend}&apiKey={NEWS_API_KEY}'
             response = requests.get(url)
+            response.raise_for_status()  
             articles = response.json().get('articles', [])
             if articles:
                 title = articles[0].get('title', '')
@@ -114,6 +126,9 @@ def get_news_summaries(trends):
                 summaries.append(f"*{translated_trend}*:\n{translated_title} - {translated_description}\n")
             else:
                 summaries.append(f"*{translated_trend}*:\nNo se encontraron noticias recientes.\n")
+        except requests.ConnectionError as e:
+            logging.error(f"Error de conexión al obtener noticias para {trend}: {e}")
+            summaries.append(f"*{trend}*:\nError de conexión.\n")
         except Exception as e:
             logging.error(f"Error al obtener noticias para {trend}: {e}")
             summaries.append(f"*{trend}*:\nError al obtener noticias.\n")
