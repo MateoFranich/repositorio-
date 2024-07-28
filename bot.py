@@ -10,7 +10,6 @@ import os
 import ssl
 
 def update_certificates():
-    # Ruta al archivo cacert.pem de certifi
     cafile = certifi.where()
 
     os.environ['SSL_CERT_FILE'] = cafile
@@ -21,6 +20,7 @@ def update_certificates():
 update_certificates()
 
 API_TOKEN = '7433787803:AAFuedeOGqjVSN5bc1TSYTrBLlc4pO2fe0E'
+NEWS_API_KEY = 'b4272bf7904f44af8abd6ae638dfba25'  
 bot = telebot.TeleBot(API_TOKEN)
 
 logging.basicConfig(level=logging.INFO)
@@ -82,6 +82,23 @@ def get_recent_tweets():
         logging.error(f"Error al obtener tweets recientes: {e}")
         return []
 
+def get_news_summaries(trends):
+    summaries = []
+    for trend in trends:
+        try:
+            url = f'https://newsapi.org/v2/everything?q={trend}&apiKey={NEWS_API_KEY}'
+            response = requests.get(url)
+            articles = response.json().get('articles', [])
+            if articles:
+                summary = articles[0].get('title', '') + ' - ' + articles[0].get('description', '')
+                summaries.append(f"{trend}: {summary}")
+            else:
+                summaries.append(f"{trend}: No se encontraron noticias recientes.")
+        except Exception as e:
+            logging.error(f"Error al obtener noticias para {trend}: {e}")
+            summaries.append(f"{trend}: Error al obtener noticias.")
+    return summaries
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message, "Hola, soy tu asistente personal.")
@@ -100,12 +117,27 @@ def send_trends(message):
                 "\n\nTendencias de Twitter Globales:\n" + "\n".join(twitter_trends_global[:5]))
     bot.reply_to(message, response)
 
+@bot.message_handler(commands=['news'])
+def send_news(message):
+    google_trends_global = get_google_trends()
+    google_trends_arg = get_google_trends('argentina')
+    twitter_trends_arg = get_twitter_trends('argentina')
+    twitter_trends_global = get_twitter_trends('')
+
+    all_trends = google_trends_global[:5] + google_trends_arg[:5] + twitter_trends_arg[:5] + twitter_trends_global[:5]
+    
+    news_summaries = get_news_summaries(all_trends)
+    
+    response = "Resumen de Noticias:\n" + "\n".join(news_summaries)
+    bot.reply_to(message, response)
+
 def show_keyboard(message):
     markup = types.ReplyKeyboardMarkup(row_width=2)
     itembtn1 = types.KeyboardButton('/start')
     itembtn2 = types.KeyboardButton('/help')
     itembtn3 = types.KeyboardButton('/trends')
-    markup.add(itembtn1, itembtn2, itembtn3)
+    itembtn4 = types.KeyboardButton('/news')
+    markup.add(itembtn1, itembtn2, itembtn3, itembtn4)
     bot.send_message(message.chat.id, "Elige un comando:", reply_markup=markup)
 
 @bot.message_handler(func=lambda message: True)
