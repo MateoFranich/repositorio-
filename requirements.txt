@@ -4,5 +4,6 @@ requests
 beautifulsoup4
 certifi
 googletrans==4.0.0-rc1
+flask
 
 

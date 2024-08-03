@@ -4,7 +4,7 @@ services:
     repo: https://github.com/MateoFranich/telegram-bot
     branch: main
     buildCommand: pip install -r requirements.txt
-    startCommand: python bot.py
+    startCommand: python bot.py & flask run --host=0.0.0.0 --port=8080
     env:
       - key: API_TOKEN
         value: 7433787803:AAFuedeOGqjVSN5bc1TSYTrBLlc4pO2fe0E

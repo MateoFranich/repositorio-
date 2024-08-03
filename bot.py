@@ -8,6 +8,7 @@ from collections import Counter
 import certifi
 import os
 import ssl
+from flask import Flask, request
 
 try:
     from googletrans import Translator
@@ -134,6 +135,16 @@ def get_news_summaries(trends):
             summaries.append(f"*{trend}*:\nError al obtener noticias.\n")
     return summaries
 
+app = Flask(__name__)
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    return "Pong", 200
+
+@app.route('/start', methods=['POST'])
+def start():
+    return "Start command received", 200
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message, "Hola, soy tu asistente personal.")
@@ -180,4 +191,26 @@ def echo_all(message):
     show_keyboard(message)
     bot.reply_to(message, message.text)
 
-bot.polling()
+if __name__ == "__main__":
+    from threading import Thread
+
+    def run_bot():
+        bot.polling()
+
+    def run_flask():
+        app.run(host='0.0.0.0', port=8080)
+
+    bot_thread = Thread(target=run_bot)
+    bot_thread.start()
+
+    run_flask()
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    return "Pong!", 200
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8080)
