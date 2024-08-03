@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: my-telegram-bot
+    repo: https://github.com/MateoFranich/telegram-bot
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    env:
+      - key: API_TOKEN
+        value: 7433787803:AAFuedeOGqjVSN5bc1TSYTrBLlc4pO2fe0E
+      - key: NEWS_API_KEY
+        value: b4272bf7904f44af8abd6ae638dfba25
